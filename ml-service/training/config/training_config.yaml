@@ -1,0 +1,156 @@
+# ================================================================
+# DeepFashion Training Configuration
+# All hyperparameters centralized here
+# ================================================================
+
+# ── Paths ────────────────────────────────────────────────────────
+paths:
+  dataset_root:   "../data/deepfashion"
+  deepfashion2_root: "../data/deepfashion2"
+  output_models:  "../models"
+  logs:           "../logs"
+
+# ── YOLO Detection Training (DeepFashion2) ───────────────────────
+yolo:
+  base_model:     "yolov8s.pt"      # small model — best accuracy/speed tradeoff
+  epochs:         100
+  imgsz:          640
+  batch:          16
+  lr0:            0.01              # initial learning rate
+  lrf:            0.01              # final learning rate fraction
+  momentum:       0.937
+  weight_decay:   0.0005
+  warmup_epochs:  3
+  cos_lr:         true              # cosine LR schedule
+  augment:        true
+  hsv_h:          0.015             # hue augmentation
+  hsv_s:          0.7               # saturation augmentation
+  hsv_v:          0.4               # value augmentation
+  flipud:         0.0
+  fliplr:         0.5               # horizontal flip
+  mosaic:         1.0               # mosaic augmentation
+  mixup:          0.1               # MixUp augmentation
+  patience:       30                # early stopping patience
+  device:         ""                # auto-select GPU/CPU
+  workers:        8
+  project:        "../models/yolo"
+  name:           "deepfashion2_finetune"
+  save_period:    10                # save checkpoint every N epochs
+  val:            true
+  plots:          true
+
+# ── ResNet50 Classification Training (DeepFashion) ───────────────
+resnet:
+  base_model:     "resnet50"
+  pretrained:     true              # ImageNet pretrained weights
+  epochs:         50
+  batch_size:     64
+  lr:             0.001             # initial learning rate
+  lr_step_size:   10                # StepLR step
+  lr_gamma:       0.1               # StepLR decay factor
+  weight_decay:   1.0e-4
+  momentum:       0.9
+  num_workers:    8
+  image_size:     224               # ResNet input size
+  num_categories: 50                # DeepFashion categories
+  num_attributes: 1000              # DeepFashion attributes
+  dropout:        0.5
+  freeze_layers:  20                # frozen backbone layers count
+  early_stopping: 10
+  save_best:      true
+
+# ── Data Augmentation (ResNet training) ──────────────────────────
+augmentation:
+  train:
+    random_crop:      true
+    random_flip:      true
+    color_jitter:
+      brightness:     0.3
+      contrast:       0.3
+      saturation:     0.3
+      hue:            0.1
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std:  [0.229, 0.224, 0.225]
+  val:
+    center_crop:      true
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std:  [0.229, 0.224, 0.225]
+
+# ── FAISS Index ──────────────────────────────────────────────────
+faiss:
+  feature_dim:    2048
+  index_type:     "IndexFlatIP"     # Inner Product (cosine similarity)
+  nlist:          100               # IVF clusters (for IVFFlat)
+  nprobe:         10                # probes at query time
+  gpu:            false             # set true if faiss-gpu installed
+
+# ── DeepFashion2 Categories (13) ─────────────────────────────────
+deepfashion2_categories:
+  0: short_sleeved_shirt
+  1: long_sleeved_shirt
+  2: short_sleeved_outwear
+  3: long_sleeved_outwear
+  4: vest
+  5: sling
+  6: shorts
+  7: trousers
+  8: skirt
+  9: short_sleeved_dress
+  10: long_sleeved_dress
+  11: vest_dress
+  12: sling_dress
+
+# ── DeepFashion Category Mapping (50 → 15 consolidated) ──────────
+category_consolidation:
+  "Anorak": "jacket"
+  "Blazer": "blazer"
+  "Blouse": "shirt"
+  "Bomber": "jacket"
+  "Button-Down": "shirt"
+  "Cardigan": "sweater"
+  "Flannel": "shirt"
+  "Halter": "camisole"
+  "Henley": "shirt"
+  "Hoodie": "hoodie"
+  "Jacket": "jacket"
+  "Jersey": "shirt"
+  "Parka": "coat"
+  "Peacoat": "coat"
+  "Poncho": "coat"
+  "Popover": "shirt"
+  "Pullover": "sweater"
+  "Puffer": "jacket"
+  "Raglan": "shirt"
+  "Shirtdress": "dress"
+  "Skirt": "skirt"
+  "Sweatshirt": "hoodie"
+  "Tank": "camisole"
+  "Tee": "t-shirt"
+  "Top": "t-shirt"
+  "Turtleneck": "sweater"
+  "Capris": "trousers"
+  "Chinos": "trousers"
+  "Culottes": "trousers"
+  "Cutoffs": "shorts"
+  "Gauchos": "trousers"
+  "Jeans": "jeans"
+  "Jeggings": "jeans"
+  "Jodhpurs": "trousers"
+  "Joggers": "trousers"
+  "Leggings": "trousers"
+  "Sarong": "skirt"
+  "Shorts": "shorts"
+  "Skort": "skirt"
+  "Sweatpants": "trousers"
+  "Sweatshorts": "shorts"
+  "Trunks": "shorts"
+  "Caftan": "dress"
+  "Cape": "coat"
+  "Coat": "coat"
+  "Coverup": "dress"
+  "Dress": "dress"
+  "Jumpsuit": "dress"
+  "Kaftan": "dress"
+  "Kimono": "coat"
