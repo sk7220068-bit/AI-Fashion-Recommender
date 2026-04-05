@@ -10,18 +10,18 @@ import org.springframework.context.event.EventListener;
  * AI Fashion Recommender — Spring Boot Application Entry Point.
  *
  * Full workflow:
- *   User uploads outfit image
- *     → /api/upload-outfit (OutfitController)
- *     → OutfitDetectionService   (YOLO via Python ML service)
- *     → FeatureExtractionService (ResNet50 via Python ML service)
- *     → CompatibilityService     (pairwise scoring)
- *     → OutfitUpgradeEngine      (rule-based occasion upgrade)
- *     → RecommendationService    (cosine similarity rankings)
- *     → UpgradeResult JSON returned to React frontend
+ * User uploads outfit image
+ * → /api/upload-outfit (OutfitController)
+ * → OutfitDetectionService (YOLO via Python ML service)
+ * → FeatureExtractionService (ResNet50 via Python ML service)
+ * → CompatibilityService (pairwise scoring)
+ * → OutfitUpgradeEngine (rule-based occasion upgrade)
+ * → RecommendationService (cosine similarity rankings)
+ * → UpgradeResult JSON returned to React frontend
  *
  * Run: mvn spring-boot:run
  * API: http://localhost:8080/api
- * UI:  http://localhost:5173 (React dev server)
+ * UI: http://localhost:5173 (React dev server)
  */
 @Slf4j
 @SpringBootApplication

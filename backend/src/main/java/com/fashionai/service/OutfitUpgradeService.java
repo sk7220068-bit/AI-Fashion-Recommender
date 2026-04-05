@@ -15,11 +15,11 @@ import java.util.List;
 
 /**
  * Orchestrates the full outfit upgrade pipeline:
- *  1. Score outfit compatibility
- *  2. Apply upgrade rules via OutfitUpgradeEngine
- *  3. Fetch complementary outfit recommendations
- *  4. Optionally generate AI description
- *  5. Persist result to history
+ * 1. Score outfit compatibility
+ * 2. Apply upgrade rules via OutfitUpgradeEngine
+ * 3. Fetch complementary outfit recommendations
+ * 4. Optionally generate AI description
+ * 5. Persist result to history
  */
 @Slf4j
 @Service
@@ -41,11 +41,11 @@ public class OutfitUpgradeService {
      * @param detectedItems items detected from the uploaded image
      * @param occasion      target occasion chosen by the user
      * @param imageBytes    raw image bytes (used for feature extraction)
-     * @return              complete UpgradeResult with suggestions and recommendations
+     * @return complete UpgradeResult with suggestions and recommendations
      */
     public UpgradeResult upgradeOutfit(List<ClothingItem> detectedItems,
-                                        String occasion,
-                                        byte[] imageBytes) {
+            String occasion,
+            byte[] imageBytes) {
         log.info("Starting outfit upgrade for occasion '{}' with {} detected items",
                 occasion, detectedItems.size());
 
@@ -94,11 +94,12 @@ public class OutfitUpgradeService {
 
     /**
      * Optional: generates a natural language outfit description using OpenAI API.
-     * Currently returns a template string; wire to OpenAI client when API key is configured.
+     * Currently returns a template string; wire to OpenAI client when API key is
+     * configured.
      */
     private String generateAiDescription(List<ClothingItem> items,
-                                           String occasion,
-                                           UpgradeResult result) {
+            String occasion,
+            UpgradeResult result) {
         // Build a prompt summary — in production this would call OpenAI GPT-4o
         StringBuilder prompt = new StringBuilder("Upgrade for ")
                 .append(occasion)

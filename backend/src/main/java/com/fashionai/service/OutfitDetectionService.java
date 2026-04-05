@@ -17,10 +17,12 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Service responsible for sending uploaded outfit images to the Python ML microservice
+ * Service responsible for sending uploaded outfit images to the Python ML
+ * microservice
  * and parsing the YOLO clothing detection results.
  *
  * The Python service runs at {@code ml.service.base-url} and returns JSON like:
+ * 
  * <pre>
  * {
  *   "detected_items": [
@@ -67,8 +69,7 @@ public class OutfitDetectionService {
                         RequestBody.create(imageFile.getBytes(),
                                 MediaType.parse(imageFile.getContentType() != null
                                         ? imageFile.getContentType()
-                                        : "image/jpeg"))
-                )
+                                        : "image/jpeg")))
                 .build();
 
         Request request = new Request.Builder()
@@ -95,15 +96,18 @@ public class OutfitDetectionService {
     }
 
     /**
-     * Parses the JSON response from the Python ML detection service into ClothingItem objects.
+     * Parses the JSON response from the Python ML detection service into
+     * ClothingItem objects.
      */
     @SuppressWarnings("unchecked")
     private List<ClothingItem> parseDetectionResponse(String json) throws IOException {
-        Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {});
+        Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {
+        });
         List<Map<String, Object>> items = (List<Map<String, Object>>) root.get("detected_items");
 
         List<ClothingItem> result = new ArrayList<>();
-        if (items == null) return result;
+        if (items == null)
+            return result;
 
         for (Map<String, Object> item : items) {
             ClothingItem clothing = ClothingItem.builder()
@@ -153,7 +157,6 @@ public class OutfitDetectionService {
                         .category("sneakers").confidence(0.85)
                         .boundingBox(List.of(50, 560, 300, 650))
                         .dominantColor("white").style("sporty").formalityScore(0.1)
-                        .build()
-        );
+                        .build());
     }
 }

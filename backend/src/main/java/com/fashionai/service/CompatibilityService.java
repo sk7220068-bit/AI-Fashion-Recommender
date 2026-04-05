@@ -26,7 +26,8 @@ public class CompatibilityService {
      * @return compatibility score in [0.0, 1.0]
      */
     public double scoreOutfitCompatibility(List<ClothingItem> items) {
-        if (items == null || items.isEmpty()) return 0.0;
+        if (items == null || items.isEmpty())
+            return 0.0;
 
         double score = compatibilityScorer.scoreOutfit(items);
         log.info("Outfit compatibility score for {} items: {:.2f}", items.size(), score);
@@ -51,9 +52,12 @@ public class CompatibilityService {
      * @return label string: "Excellent" | "Good" | "Fair" | "Poor"
      */
     public String getCompatibilityLabel(double score) {
-        if (score >= 0.85) return "Excellent";
-        if (score >= 0.70) return "Good";
-        if (score >= 0.50) return "Fair";
+        if (score >= 0.85)
+            return "Excellent";
+        if (score >= 0.70)
+            return "Good";
+        if (score >= 0.50)
+            return "Fair";
         return "Poor";
     }
 }

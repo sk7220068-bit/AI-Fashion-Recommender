@@ -14,12 +14,13 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Service that calls the Python ResNet50 feature extraction microservice to obtain
+ * Service that calls the Python ResNet50 feature extraction microservice to
+ * obtain
  * 2048-dimensional visual feature vectors for clothing items.
  *
  * These vectors are used by:
- *   - CosineSimilarityEngine  (for recommendation ranking)
- *   - CompatibilityScorer     (for visual harmony scoring)
+ * - CosineSimilarityEngine (for recommendation ranking)
+ * - CompatibilityScorer (for visual harmony scoring)
  */
 @Slf4j
 @Service
@@ -45,9 +46,9 @@ public class FeatureExtractionService {
      * Sends the image to the Python service and enriches each ClothingItem
      * with its extracted feature vector.
      *
-     * @param imageBytes   raw bytes of the uploaded image
-     * @param items        clothing items to enrich with feature vectors
-     * @return             the same list with featureVector fields populated
+     * @param imageBytes raw bytes of the uploaded image
+     * @param items      clothing items to enrich with feature vectors
+     * @return the same list with featureVector fields populated
      */
     public List<ClothingItem> extractFeatures(byte[] imageBytes, List<ClothingItem> items) {
         log.info("Extracting features for {} clothing items", items.size());
@@ -85,9 +86,11 @@ public class FeatureExtractionService {
     }
 
     /**
-     * Parses the Python service response and maps feature vectors to items by category.
+     * Parses the Python service response and maps feature vectors to items by
+     * category.
      *
      * Expected response format:
+     * 
      * <pre>
      * {
      *   "features": {
@@ -99,7 +102,8 @@ public class FeatureExtractionService {
      */
     @SuppressWarnings("unchecked")
     private List<ClothingItem> parseFeatureResponse(String json, List<ClothingItem> items) throws IOException {
-        Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {});
+        Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {
+        });
         Map<String, List<Double>> features = (Map<String, List<Double>>) root.get("features");
 
         if (features != null) {
@@ -119,7 +123,8 @@ public class FeatureExtractionService {
      * Uses each category's hash to seed the random number generator, ensuring
      * the same category always maps to the same general feature region.
      *
-     * This enables testing the entire recommendation pipeline without the ML service.
+     * This enables testing the entire recommendation pipeline without the ML
+     * service.
      */
     private List<ClothingItem> enrichWithMockFeatures(List<ClothingItem> items) {
         // Style-based base vectors — items in the same style cluster will have
@@ -129,8 +134,7 @@ public class FeatureExtractionService {
         for (ClothingItem item : items) {
             double[] baseVector = styleBaseVectors.getOrDefault(
                     item.getStyle() != null ? item.getStyle() : "casual",
-                    styleBaseVectors.get("casual")
-            );
+                    styleBaseVectors.get("casual"));
 
             // Add category-specific noise on top of the style base vector
             List<Double> featureVector = new ArrayList<>(FEATURE_DIM);
@@ -138,7 +142,7 @@ public class FeatureExtractionService {
 
             for (int i = 0; i < FEATURE_DIM; i++) {
                 double value = baseVector[i % baseVector.length] + (rand.nextGaussian() * 0.05);
-                featureVector.add(Math.max(0, value));  // ReLU — keep non-negative
+                featureVector.add(Math.max(0, value)); // ReLU — keep non-negative
             }
 
             item.setFeatureVector(featureVector);
@@ -152,7 +156,7 @@ public class FeatureExtractionService {
      */
     private Map<String, double[]> generateStyleBaseVectors() {
         Map<String, double[]> bases = new HashMap<>();
-        String[] styles = {"casual", "formal", "smart-casual", "sporty", "streetwear"};
+        String[] styles = { "casual", "formal", "smart-casual", "sporty", "streetwear" };
 
         for (int s = 0; s < styles.length; s++) {
             double[] base = new double[64]; // Short base, will be tiled to 2048
@@ -166,8 +170,10 @@ public class FeatureExtractionService {
     }
 
     /**
-     * Computes the aggregate (centroid) feature vector for a list of clothing items.
-     * Used to represent an entire outfit as a single vector for recommendation queries.
+     * Computes the aggregate (centroid) feature vector for a list of clothing
+     * items.
+     * Used to represent an entire outfit as a single vector for recommendation
+     * queries.
      *
      * @param items clothing items (must have featureVector populated)
      * @return mean feature vector, or empty list if no features available
@@ -178,7 +184,8 @@ public class FeatureExtractionService {
                 .filter(v -> v != null && !v.isEmpty())
                 .toList();
 
-        if (vectors.isEmpty()) return List.of();
+        if (vectors.isEmpty())
+            return List.of();
 
         int dim = vectors.get(0).size();
         double[] aggregate = new double[dim];
@@ -191,7 +198,8 @@ public class FeatureExtractionService {
 
         double count = vectors.size();
         List<Double> result = new ArrayList<>(dim);
-        for (double v : aggregate) result.add(v / count);
+        for (double v : aggregate)
+            result.add(v / count);
         return result;
     }
 }

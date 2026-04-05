@@ -26,10 +26,10 @@ import java.util.stream.Collectors;
  * Content-based outfit recommendation service.
  *
  * Pipeline:
- *  1. Load outfits from MongoDB (seeded from CSV on first run)
- *  2. Compute cosine similarity between query vector and each dataset outfit
- *  3. Apply occasion-boost weighting
- *  4. Sort by composite rank score and return top-N results
+ * 1. Load outfits from MongoDB (seeded from CSV on first run)
+ * 2. Compute cosine similarity between query vector and each dataset outfit
+ * 3. Apply occasion-boost weighting
+ * 4. Sort by composite rank score and return top-N results
  */
 @Slf4j
 @Service
@@ -53,6 +53,7 @@ public class RecommendationService {
      * Ensures outfits are available for recommendation without manual setup.
      */
     @PostConstruct
+    @SuppressWarnings("null")
     public void seedDatasetIfEmpty() {
         long count = outfitRepository.count();
         if (count == 0) {
@@ -72,14 +73,14 @@ public class RecommendationService {
     /**
      * Returns outfit recommendations based on a query feature vector and occasion.
      *
-     * @param queryVector  aggregate feature vector of the uploaded outfit
-     * @param occasion     target occasion filter (can be null for broad search)
-     * @param style        target style filter (can be null)
-     * @return             list of OutfitRecommendation sorted by ranking score
+     * @param queryVector aggregate feature vector of the uploaded outfit
+     * @param occasion    target occasion filter (can be null for broad search)
+     * @param style       target style filter (can be null)
+     * @return list of OutfitRecommendation sorted by ranking score
      */
     public List<OutfitRecommendation> recommend(List<Double> queryVector,
-                                                  String occasion,
-                                                  String style) {
+            String occasion,
+            String style) {
         log.info("Generating recommendations for occasion='{}', style='{}'", occasion, style);
 
         // Load all dataset outfits for similarity computation
@@ -95,13 +96,15 @@ public class RecommendationService {
         for (Outfit outfit : candidates) {
             // Skip outfits without feature vectors
             if (outfit.getAggregateFeatureVector() == null ||
-                    outfit.getAggregateFeatureVector().isEmpty()) continue;
+                    outfit.getAggregateFeatureVector().isEmpty())
+                continue;
 
             double similarity = cosineSimilarity.computeSimilarity(
                     queryVector, outfit.getAggregateFeatureVector());
 
             // Filter out outfits below the similarity threshold
-            if (similarity < similarityThreshold) continue;
+            if (similarity < similarityThreshold)
+                continue;
 
             // Occasion compatibility boost (rewards exact occasion match)
             double occasionBoost = computeOccasionBoost(outfit, occasion);
@@ -168,12 +171,14 @@ public class RecommendationService {
     // ── Private helpers ────────────────────────────────────────────────────────
 
     private double computeOccasionBoost(Outfit outfit, String occasion) {
-        if (occasion == null || outfit.getOccasions() == null) return 0.5;
+        if (occasion == null || outfit.getOccasions() == null)
+            return 0.5;
         return outfit.getOccasions().contains(occasion.toLowerCase()) ? 1.0 : 0.3;
     }
 
     private double computeStyleBoost(Outfit outfit, String style) {
-        if (style == null || outfit.getStyle() == null) return 0.5;
+        if (style == null || outfit.getStyle() == null)
+            return 0.5;
         return outfit.getStyle().equalsIgnoreCase(style) ? 1.0 : 0.4;
     }
 
@@ -186,18 +191,19 @@ public class RecommendationService {
 
     /**
      * Parses the outfits.csv file from classpath and builds Outfit domain objects.
-     * Expected CSV columns: id,name,style,occasions,items,color_palette,season,formality_score,feature_vector
+     * Expected CSV columns:
+     * id,name,style,occasions,items,color_palette,season,formality_score,feature_vector
      */
     private List<Outfit> loadOutfitsFromCsv() throws Exception {
         List<Outfit> outfits = new ArrayList<>();
 
         try (Reader reader = new InputStreamReader(outfitsCsvResource.getInputStream(), StandardCharsets.UTF_8);
-             CSVParser parser = CSVFormat.DEFAULT.builder()
-                     .setHeader()
-                     .setSkipHeaderRecord(true)
-                     .setTrim(true)
-                     .build()
-                     .parse(reader)) {
+                CSVParser parser = CSVFormat.DEFAULT.builder()
+                        .setHeader()
+                        .setSkipHeaderRecord(true)
+                        .setTrim(true)
+                        .build()
+                        .parse(reader)) {
 
             for (CSVRecord record : parser) {
                 try {
@@ -250,7 +256,8 @@ public class RecommendationService {
     }
 
     private List<Double> parseFeatureVector(String vectorStr) {
-        if (vectorStr == null || vectorStr.isBlank()) return generateDefaultVector();
+        if (vectorStr == null || vectorStr.isBlank())
+            return generateDefaultVector();
         try {
             return Arrays.stream(vectorStr.split("\\|"))
                     .map(Double::parseDouble)
@@ -260,11 +267,15 @@ public class RecommendationService {
         }
     }
 
-    /** Generates a random 64-dim placeholder feature vector for CSV entries without one */
+    /**
+     * Generates a random 64-dim placeholder feature vector for CSV entries without
+     * one
+     */
     private List<Double> generateDefaultVector() {
         Random r = new Random();
         List<Double> v = new ArrayList<>(64);
-        for (int i = 0; i < 64; i++) v.add(r.nextDouble());
+        for (int i = 0; i < 64; i++)
+            v.add(r.nextDouble());
         return v;
     }
 }
