@@ -19,8 +19,9 @@ import java.util.Map;
  * REST controller that handles outfit image uploads.
  *
  * Endpoints:
- *   POST /api/upload-outfit  — Full pipeline: detect → extract → upgrade → recommend
- *   POST /api/detect-clothes — Clothing detection only (without upgrade)
+ * POST /api/upload-outfit — Full pipeline: detect → extract → upgrade →
+ * recommend
+ * POST /api/detect-clothes — Clothing detection only (without upgrade)
  */
 @Slf4j
 @RestController
@@ -40,10 +41,10 @@ public class OutfitController {
      *
      * @param image    multipart image file (supported: jpg, png, webp)
      * @param occasion target occasion string (e.g., "party", "work", "casual")
-     * @return         complete UpgradeResult JSON
+     * @return complete UpgradeResult JSON
      */
     @PostMapping(value = "/upload-outfit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UpgradeResult> uploadOutfit(
+    public ResponseEntity<?> uploadOutfit(
             @RequestParam("image") MultipartFile image,
             @RequestParam(value = "occasion", defaultValue = "casual") String occasion) {
 
@@ -57,7 +58,9 @@ public class OutfitController {
             List<ClothingItem> detectedItems = detectionService.detectClothing(image);
 
             if (detectedItems.isEmpty()) {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message",
+                        "No clothing items detected. The YOLO model could not identify clear clothing regions in the image. Please try an image with more visible or separated clothing items."));
             }
 
             // ── Step 2: Run full upgrade pipeline ────────────────────────────
@@ -90,8 +93,7 @@ public class OutfitController {
             return ResponseEntity.ok(Map.of(
                     "detected_items", items,
                     "item_count", items.size(),
-                    "status", "success"
-            ));
+                    "status", "success"));
 
         } catch (IOException e) {
             log.error("Detection error: {}", e.getMessage());
