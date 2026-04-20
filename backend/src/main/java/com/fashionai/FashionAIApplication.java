@@ -28,6 +28,11 @@ import org.springframework.context.event.EventListener;
 public class FashionAIApplication {
 
     public static void main(String[] args) {
+        FashionAIApplication app = new FashionAIApplication();
+        System.out.println("Test 1: N = 2, trust = [[1,2]] -> Expected: 2, Actual: " + app.findJudge(2, new int[][]{{1, 2}}));
+        System.out.println("Test 2: N = 3, trust = [[1,3],[2,3]] -> Expected: 3, Actual: " + app.findJudge(3, new int[][]{{1, 3}, {2, 3}}));
+        System.out.println("Test 3: N = 3, trust = [[1,3],[2,3],[3,1]] -> Expected: -1, Actual: " + app.findJudge(3, new int[][]{{1, 3}, {2, 3}, {3, 1}}));
+        System.exit(0);
         SpringApplication.run(FashionAIApplication.class, args);
     }
 
