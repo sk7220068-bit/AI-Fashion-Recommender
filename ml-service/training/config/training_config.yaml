@@ -12,7 +12,7 @@ paths:
 
 # ── YOLO Detection Training (DeepFashion2) ───────────────────────
 yolo:
-  base_model:     "yolov8s.pt"      # small model — best accuracy/speed tradeoff
+  base_model:     "/app/models/yolo/custom_model.pt"  # Load our Kaggle-trained model as foundation
   epochs:         100
   imgsz:          640
   batch:          16
@@ -28,9 +28,12 @@ yolo:
   hsv_v:          0.4               # value augmentation
   flipud:         0.0
   fliplr:         0.5               # horizontal flip
+  flipud:         0.1               # minor vertical flip for overhead shots
   mosaic:         1.0               # mosaic augmentation
-  mixup:          0.1               # MixUp augmentation
-  patience:       30                # early stopping patience
+  mixup:          0.2               # MixUp augmentation (increased for accuracy)
+  copy_paste:     0.1               # Segment-based copy paste
+  degrees:        10.0              # Random rotation
+  patience:       25                # early stopping patience
   device:         ""                # auto-select GPU/CPU
   workers:        8
   project:        "../models/yolo"

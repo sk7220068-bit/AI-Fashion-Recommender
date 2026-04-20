@@ -11,12 +11,6 @@ Prerequisites:
   pip install ultralytics pyyaml
   python training/preprocess_deepfashion2.py  ← run first
 
-Usage:
-  python training/train_yolo.py
-  python training/train_yolo.py --model yolov8m.pt  # larger model
-  python training/train_yolo.py --resume             # resume checkpoint
-  python training/train_yolo.py --data /custom/data.yaml
-
 On Kaggle (free GPU):
   Use notebooks/deepfashion_training.ipynb with GPU accelerator enabled.
 """
@@ -29,6 +23,7 @@ import time
 from pathlib import Path
 
 import yaml
+from mlflow_utils import get_tracker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -109,38 +104,61 @@ def train(args):
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # ── Tracking ──────────────────────────────────────────────────
+    tracker = get_tracker(experiment_name="FashionAI_Detection")
+    
     # ── Train ─────────────────────────────────────────────────────
     logger.info("\nStarting training...")
     start_time = time.time()
 
     try:
-        results = model.train(
-            data=str(data_yaml),
-            epochs=epochs,
-            imgsz=imgsz,
-            batch=batch,
-            lr0=cfg.get("lr0", 0.01),
-            lrf=cfg.get("lrf", 0.01),
-            momentum=cfg.get("momentum", 0.937),
-            weight_decay=cfg.get("weight_decay", 0.0005),
-            warmup_epochs=cfg.get("warmup_epochs", 3),
-            cos_lr=cfg.get("cos_lr", True),
-            hsv_h=cfg.get("hsv_h", 0.015),
-            hsv_s=cfg.get("hsv_s", 0.7),
-            hsv_v=cfg.get("hsv_v", 0.4),
-            fliplr=cfg.get("fliplr", 0.5),
-            mosaic=cfg.get("mosaic", 1.0),
-            mixup=cfg.get("mixup", 0.1),
-            patience=cfg.get("patience", 30),
-            project=str(output_dir),
-            name=cfg.get("name", "deepfashion2_finetune"),
-            save_period=cfg.get("save_period", 10),
-            val=True,
-            plots=True,
-            verbose=True,
-            device=cfg.get("device", ""),
-            workers=cfg.get("workers", 8),
-        )
+        with tracker.start_run(run_name=f"YOLO_{model_name}_{int(time.time())}"):
+            # Log hyperparameters
+            tracker.log_params({
+                "model": model_name,
+                "epochs": epochs,
+                "batch_size": batch,
+                "imgsz": imgsz,
+                "lr0": cfg.get("lr0", 0.01),
+                "mosaic": cfg.get("mosaic", 1.0),
+                "mixup": cfg.get("mixup", 0.1)
+            })
+
+            results = model.train(
+                data=str(data_yaml),
+                epochs=epochs,
+                imgsz=imgsz,
+                batch=batch,
+                lr0=cfg.get("lr0", 0.01),
+                lrf=cfg.get("lrf", 0.01),
+                momentum=cfg.get("momentum", 0.937),
+                weight_decay=cfg.get("weight_decay", 0.0005),
+                warmup_epochs=cfg.get("warmup_epochs", 3),
+                cos_lr=cfg.get("cos_lr", True),
+                hsv_h=cfg.get("hsv_h", 0.015),
+                hsv_s=cfg.get("hsv_s", 0.7),
+                hsv_v=cfg.get("hsv_v", 0.4),
+                fliplr=cfg.get("fliplr", 0.5),
+                mosaic=cfg.get("mosaic", 1.0),
+                mixup=cfg.get("mixup", 0.1),
+                patience=cfg.get("patience", 30),
+                project=str(output_dir),
+                name=cfg.get("name", "deepfashion2_finetune"),
+                save_period=cfg.get("save_period", 10),
+                val=True,
+                plots=True,
+                verbose=True,
+                device=cfg.get("device", ""),
+                workers=cfg.get("workers", 8),
+            )
+
+            # Log final metrics to MLflow
+            tracker.log_metrics({
+                "map50":      float(results.results_dict.get("metrics/mAP50(B)", 0)),
+                "map50_95":   float(results.results_dict.get("metrics/mAP50-95(B)", 0)),
+                "precision":  float(results.results_dict.get("metrics/precision(B)", 0)),
+                "recall":     float(results.results_dict.get("metrics/recall(B)", 0)),
+            })
 
         elapsed = time.time() - start_time
         logger.info(f"\nTraining completed in {elapsed/3600:.1f} hours")

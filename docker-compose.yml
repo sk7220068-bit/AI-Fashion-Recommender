@@ -23,7 +23,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: fashionai
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,7 +41,7 @@ services:
       - PORT=5001
       - FLASK_DEBUG=false
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:5001/health" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -66,7 +66,7 @@ services:
       ml-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/health" ]
       interval: 15s
       timeout: 10s
       retries: 5

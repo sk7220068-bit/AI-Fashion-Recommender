@@ -3,11 +3,12 @@
 # ============================================================
 
 detection:
-  model: yolov8n.pt          # YOLO v8 nano — fast, good accuracy
-  confidence_threshold: 0.45  # Min confidence to accept a detection
-  iou_threshold: 0.50         # Non-max suppression IoU threshold
-  input_size: 640             # YOLO input image size (pixels)
-  device: cpu                 # cpu | cuda:0
+  weights_path: "/app/models/yolo/custom_model.pt"
+  model: yolov8n.pt          
+  confidence_threshold: 0.35  # Unified with current code default
+  iou_threshold: 0.45         # Unified with current code default
+  input_size: 640             
+  device: cpu                 
   classes:                    # Clothing categories to detect
     - shirt
     - t-shirt

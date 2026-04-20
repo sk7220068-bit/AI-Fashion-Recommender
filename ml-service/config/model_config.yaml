@@ -1,0 +1,71 @@
+# ============================================================
+#  AI Fashion Recommender — Model Configuration
+# ============================================================
+
+detection:
+  weights_path: "/app/models/yolo/custom_model.pt"
+  model: yolov8n.pt          
+  confidence_threshold: 0.35  # Unified with current code default
+  iou_threshold: 0.45         # Unified with current code default
+  input_size: 640             
+  device: cpu                 
+  classes:                    # Clothing categories to detect
+    - shirt
+    - t-shirt
+    - pants
+    - jeans
+    - jacket
+    - blazer
+    - dress
+    - skirt
+    - shorts
+    - shoes
+    - sneakers
+    - boots
+    - coat
+    - sweater
+    - hoodie
+
+feature_extraction:
+  model: resnet50             # ResNet50 pretrained on ImageNet
+  feature_dim: 2048           # Output vector dimensionality
+  layer: avgpool              # Layer to tap for feature vector
+  normalize: true             # L2-normalize output vectors
+  device: cpu
+
+similarity:
+  metric: cosine              # cosine | euclidean | manhattan
+  compatibility_threshold: 0.60
+  recommendation_threshold: 0.50
+
+compatibility_rules:
+  # Style compatibility matrix (higher = more compatible)
+  formal_casual: 0.3
+  formal_smart_casual: 0.7
+  formal_formal: 1.0
+  casual_casual: 1.0
+  casual_smart_casual: 0.8
+  sporty_sporty: 1.0
+  sporty_casual: 0.7
+
+upgrade_rules:
+  party:
+    avoid: [hoodie, shorts, sneakers, flip-flops]
+    prefer: [blazer, dress, heels, boots, clutch]
+    formality_min: 0.7
+  work:
+    avoid: [shorts, flip-flops, crop-top, gym-wear]
+    prefer: [blazer, trousers, formal-shirt, heels, oxford-shoes]
+    formality_min: 0.8
+  casual:
+    avoid: [tuxedo, ballgown]
+    prefer: [jeans, t-shirt, sneakers, hoodie]
+    formality_min: 0.1
+  date:
+    avoid: [gym-wear, shorts]
+    prefer: [dress, boots, smart-casual, blazer]
+    formality_min: 0.5
+  formal:
+    avoid: [jeans, sneakers, t-shirt, shorts]
+    prefer: [suit, dress, heels, formal-shirt, tie]
+    formality_min: 0.9
