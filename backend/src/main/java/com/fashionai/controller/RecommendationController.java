@@ -39,11 +39,12 @@ public class RecommendationController {
 
         String occasion = body.getOrDefault("occasion", "casual");
         String style    = body.getOrDefault("style", null);
+        String userId   = body.getOrDefault("userId", null);
 
         log.info("POST /api/recommend-outfit — occasion='{}', style='{}'", occasion, style);
 
         List<OutfitRecommendation> recommendations =
-                recommendationService.recommendByOccasionAndStyle(occasion, style);
+                recommendationService.recommendByOccasionAndStyle(occasion, style, userId);
 
         return ResponseEntity.ok(Map.of(
                 "recommendations", recommendations,
@@ -59,12 +60,13 @@ public class RecommendationController {
     @GetMapping("/recommend-outfit")
     public ResponseEntity<Map<String, Object>> recommendOutfitGet(
             @RequestParam(value = "occasion", defaultValue = "casual") String occasion,
-            @RequestParam(value = "style", required = false) String style) {
+            @RequestParam(value = "style", required = false) String style,
+            @RequestParam(value = "userId", required = false) String userId) {
 
         log.info("GET /api/recommend-outfit — occasion='{}', style='{}'", occasion, style);
 
         List<OutfitRecommendation> recommendations =
-                recommendationService.recommendByOccasionAndStyle(occasion, style);
+                recommendationService.recommendByOccasionAndStyle(occasion, style, userId);
 
         return ResponseEntity.ok(Map.of(
                 "recommendations", recommendations,

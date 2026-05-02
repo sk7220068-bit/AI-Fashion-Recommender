@@ -52,6 +52,15 @@ public class UpgradeResult {
     /** Compatible outfit recommendations alongside the upgrade */
     private List<OutfitRecommendation> recommendations;
 
+    /** Rendered visual preview URL (or data URI) for the upgraded outfit */
+    private String upgradedImageUrl;
+
+    /** Alternative rendered upgrade previews */
+    private List<String> upgradedImageAlternatives;
+
+    /** Rendering status: ready | pending | failed */
+    private String renderStatus;
+
     /** When this result was generated */
     @CreatedDate
     private Instant createdAt;

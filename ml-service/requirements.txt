@@ -12,3 +12,8 @@ gunicorn>=20.1.0
 pyyaml
 mlflow
 gdown
+
+redis>=5.0.0
+rq>=1.16.2
+boto3>=1.34.0
+flask-limiter>=3.8.0

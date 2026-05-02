@@ -50,6 +50,7 @@ public class UpgradeController {
     @PostMapping("/upgrade-outfit")
     public ResponseEntity<UpgradeResult> upgradeOutfit(@RequestBody Map<String, Object> body) {
         String occasion = (String) body.getOrDefault("occasion", "casual");
+        String userId = body.containsKey("userId") ? (String) body.get("userId") : null;
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> rawItems = (List<Map<String, Object>>) body.get("detectedItems");
@@ -67,7 +68,7 @@ public class UpgradeController {
                 .toList();
 
         // Run upgrade pipeline (without raw image bytes — features will use mock)
-        UpgradeResult result = upgradeService.upgradeOutfit(items, occasion, new byte[0]);
+        UpgradeResult result = upgradeService.upgradeOutfit(items, occasion, new byte[0], userId);
         return ResponseEntity.ok(result);
     }
 

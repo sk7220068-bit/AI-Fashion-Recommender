@@ -38,6 +38,7 @@ public class RecommendationService {
 
     private final OutfitRepository outfitRepository;
     private final CosineSimilarityEngine cosineSimilarity;
+    private final PersonalizationService personalizationService;
 
     @Value("${dataset.outfits-csv-path}")
     private Resource outfitsCsvResource;
@@ -81,6 +82,13 @@ public class RecommendationService {
     public List<OutfitRecommendation> recommend(List<Double> queryVector,
             String occasion,
             String style) {
+        return recommend(queryVector, occasion, style, null);
+    }
+
+    public List<OutfitRecommendation> recommend(List<Double> queryVector,
+            String occasion,
+            String style,
+            String userId) {
         log.info("Generating recommendations for occasion='{}', style='{}'", occasion, style);
 
         // Load all dataset outfits for similarity computation
@@ -92,6 +100,9 @@ public class RecommendationService {
         }
 
         List<OutfitRecommendation> recommendations = new ArrayList<>();
+
+        Optional<com.fashionai.model.UserPreference> preference =
+                personalizationService.loadPreference(userId);
 
         for (Outfit outfit : candidates) {
             // Skip outfits without feature vectors
@@ -113,14 +124,29 @@ public class RecommendationService {
             double styleBoost = computeStyleBoost(outfit, style);
 
             // Composite ranking score
-            double rankingScore = (similarity * 0.6) + (occasionBoost * 0.3) + (styleBoost * 0.1);
+            double baseScore = (similarity * 0.6) + (occasionBoost * 0.3) + (styleBoost * 0.1);
+            double rankingScore = baseScore;
+
+            if (preference.isPresent()) {
+                double personalization = personalizationService.computePersonalizationBoost(
+                        outfit, preference.get(), occasion);
+                rankingScore = (baseScore * 0.8) + (personalization * 0.2);
+            }
+
+            String personalizationReason = preference
+                    .map(pref -> personalizationService.buildPersonalizationReason(outfit, pref, occasion))
+                    .orElse("");
+            String reason = buildReason(outfit, occasion, similarity);
+            if (!personalizationReason.isBlank()) {
+                reason = reason + " · " + personalizationReason;
+            }
 
             recommendations.add(OutfitRecommendation.builder()
                     .outfit(outfit)
                     .similarityScore(similarity)
                     .occasionCompatibilityScore(occasionBoost)
                     .rankingScore(rankingScore)
-                    .recommendationReason(buildReason(outfit, occasion, similarity))
+                    .recommendationReason(reason)
                     .build());
         }
 
@@ -144,6 +170,10 @@ public class RecommendationService {
      * Falls back to occasion and style filtering only.
      */
     public List<OutfitRecommendation> recommendByOccasionAndStyle(String occasion, String style) {
+        return recommendByOccasionAndStyle(occasion, style, null);
+    }
+
+    public List<OutfitRecommendation> recommendByOccasionAndStyle(String occasion, String style, String userId) {
         List<Outfit> candidates;
         if (occasion != null && style != null) {
             candidates = outfitRepository.findByStyleAndOccasionsContaining(style, occasion);
@@ -155,6 +185,9 @@ public class RecommendationService {
             candidates = outfitRepository.findTop10ByOrderByPopularityScoreDesc();
         }
 
+        Optional<com.fashionai.model.UserPreference> preference =
+                personalizationService.loadPreference(userId);
+
         return candidates.stream()
                 .sorted(Comparator.comparingDouble(Outfit::getPopularityScore).reversed())
                 .limit(maxResults)
@@ -162,8 +195,20 @@ public class RecommendationService {
                         .outfit(outfit)
                         .similarityScore(1.0)
                         .occasionCompatibilityScore(1.0)
-                        .rankingScore(outfit.getPopularityScore())
-                        .recommendationReason(String.format("Popular %s outfit for %s", outfit.getStyle(), occasion))
+                        .rankingScore(preference
+                                .map(pref -> (outfit.getPopularityScore() * 0.8) +
+                                        (personalizationService.computePersonalizationBoost(outfit, pref, occasion)
+                                                * 0.2))
+                                .orElse(outfit.getPopularityScore()))
+                        .recommendationReason(preference
+                                .map(pref -> {
+                                    String base = String.format("Popular %s outfit for %s", outfit.getStyle(),
+                                            occasion);
+                                    String personal = personalizationService.buildPersonalizationReason(outfit, pref,
+                                            occasion);
+                                    return personal.isBlank() ? base : base + " · " + personal;
+                                })
+                                .orElse(String.format("Popular %s outfit for %s", outfit.getStyle(), occasion)))
                         .build())
                 .collect(Collectors.toList());
     }

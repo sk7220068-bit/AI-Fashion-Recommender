@@ -31,6 +31,7 @@ public class OutfitUpgradeService {
     private final RecommendationService recommendationService;
     private final RecommendationHistoryRepository historyRepository;
     private final FeatureExtractionService featureExtractionService;
+    private final UpgradeRenderService upgradeRenderService;
 
     @Value("${openai.api.enabled:false}")
     private boolean openAiEnabled;
@@ -46,6 +47,13 @@ public class OutfitUpgradeService {
     public UpgradeResult upgradeOutfit(List<ClothingItem> detectedItems,
             String occasion,
             byte[] imageBytes) {
+        return upgradeOutfit(detectedItems, occasion, imageBytes, null);
+    }
+
+    public UpgradeResult upgradeOutfit(List<ClothingItem> detectedItems,
+            String occasion,
+            byte[] imageBytes,
+            String userId) {
         log.info("Starting outfit upgrade for occasion '{}' with {} detected items",
                 occasion, detectedItems.size());
 
@@ -65,11 +73,18 @@ public class OutfitUpgradeService {
         List<OutfitRecommendation> recommendations;
 
         if (!aggregateVector.isEmpty()) {
-            recommendations = recommendationService.recommend(aggregateVector, occasion, null);
+            recommendations = recommendationService.recommend(aggregateVector, occasion, null, userId);
         } else {
-            recommendations = recommendationService.recommendByOccasionAndStyle(occasion, null);
+            recommendations = recommendationService.recommendByOccasionAndStyle(occasion, null, userId);
         }
         result.setRecommendations(recommendations);
+
+        // ── Step 4b: Render upgraded preview image ─────────────────────────────
+        UpgradeRenderService.RenderResult renderResult = upgradeRenderService.renderUpgradePreview(
+                imageBytes, result);
+        result.setUpgradedImageUrl(renderResult.getUpgradedImageUrl());
+        result.setUpgradedImageAlternatives(renderResult.getUpgradedImageAlternatives());
+        result.setRenderStatus(renderResult.isSuccess() ? "ready" : "failed");
 
         // ── Step 5: Optional AI description ─────────────────────────────────
         if (openAiEnabled) {

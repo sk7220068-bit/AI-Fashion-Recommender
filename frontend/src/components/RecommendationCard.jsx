@@ -2,7 +2,7 @@
  * RecommendationCard — displays a single outfit recommendation with
  * score badge, item tags, color palette, and reason text.
  */
-export default function RecommendationCard({ recommendation, index }) {
+export default function RecommendationCard({ recommendation, index, onFeedback }) {
   const { outfit, similarityScore, rankingScore, rank, recommendationReason } = recommendation
 
   const scorePercent = Math.round((rankingScore || similarityScore || 0) * 100)
@@ -98,6 +98,16 @@ export default function RecommendationCard({ recommendation, index }) {
       {recommendationReason && (
         <div className="reco-reason">"{recommendationReason}"</div>
       )}
+
+      {/* Feedback controls */}
+      <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
+        <button className="btn btn-ghost" style={{ padding: '0.35rem 0.6rem' }}
+          onClick={() => onFeedback?.(recommendation, 'like')}>👍</button>
+        <button className="btn btn-ghost" style={{ padding: '0.35rem 0.6rem' }}
+          onClick={() => onFeedback?.(recommendation, 'dislike')}>👎</button>
+        <button className="btn btn-ghost" style={{ padding: '0.35rem 0.6rem' }}
+          onClick={() => onFeedback?.(recommendation, 'save')}>💾</button>
+      </div>
     </div>
   )
 }

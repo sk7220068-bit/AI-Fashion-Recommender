@@ -4,6 +4,7 @@ import ImageUploader from './components/ImageUploader'
 import OccasionSelector from './components/OccasionSelector'
 import DetectionResults from './components/DetectionResults'
 import UpgradePanel from './components/UpgradePanel'
+import UserProfilePanel from './components/UserProfilePanel'
 
 // ── Steps definition ──────────────────────────────────────────────
 const STEPS = [
@@ -34,6 +35,7 @@ export default function App() {
   const [error,         setError]         = useState(null)
   const [detectedItems, setDetectedItems] = useState([])
   const [upgradeResult, setUpgradeResult] = useState(null)
+  const [userId,        setUserId]        = useState(localStorage.getItem('fashionai_user_id') || 'demo-user')
 
   // ── Handlers ───────────────────────────────────────────────────
   const handleImageSelect = (file, url) => {
@@ -62,14 +64,25 @@ export default function App() {
       const formData = new FormData()
       formData.append('image', imageFile)
       formData.append('occasion', occasion)
+      formData.append('userId', userId)
+      formData.append('renderMode', 'async')
 
       const { data } = await axios.post('/api/upload-outfit', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 60_000,
       })
 
-      setDetectedItems(data.detectedItems || [])
-      setUpgradeResult(data)
+      if (data.renderJobId) {
+        setDetectedItems(data.upgradeResult?.detectedItems || [])
+        setUpgradeResult({
+          ...data.upgradeResult,
+          renderJobId: data.renderJobId,
+          renderStatus: data.renderStatus
+        })
+      } else {
+        setDetectedItems(data.detectedItems || [])
+        setUpgradeResult(data)
+      }
       setCurrentStep(3)
 
     } catch (err) {
@@ -99,7 +112,7 @@ export default function App() {
     setError(null)
     setLoading(true)
     try {
-      const { data } = await axios.post('/api/recommend-outfit', { occasion, style: null })
+      const { data } = await axios.post('/api/recommend-outfit', { occasion, style: null, userId })
       setUpgradeResult({
         occasion,
         detectedItems: [],
@@ -134,6 +147,13 @@ export default function App() {
               <span className="logo-badge">AI Powered</span>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <UserProfilePanel
+                userId={userId}
+                onUserIdChange={(next) => {
+                  setUserId(next)
+                  localStorage.setItem('fashionai_user_id', next)
+                }}
+              />
               {upgradeResult && (
                 <button className="btn btn-ghost" onClick={handleReset} id="btn-reset">
                   ↩ New Analysis
@@ -160,6 +180,20 @@ export default function App() {
               Upload your outfit, pick an occasion, and let our AI detect clothing items,
               score compatibility, and suggest upgrades — all in seconds.
             </p>
+            <div className="hero-metrics">
+              <div className="metric-card">
+                <div className="metric-value">3s</div>
+                <div className="metric-label">avg preview time</div>
+              </div>
+              <div className="metric-card">
+                <div className="metric-value">3</div>
+                <div className="metric-label">upgrade variants</div>
+              </div>
+              <div className="metric-card">
+                <div className="metric-value">10+</div>
+                <div className="metric-label">personalized picks</div>
+              </div>
+            </div>
           </section>
 
           {/* Stepper */}
@@ -215,14 +249,7 @@ export default function App() {
 
           {/* ── Step 0 + 1: Upload & Occasion ────────────────── */}
           {!upgradeResult && !loading && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem',
-              }}
-            >
+            <div className="onboarding-grid">
               {/* Upload card */}
               <div className="card">
                 <div className="section-header">
@@ -273,20 +300,15 @@ export default function App() {
                 </div>
 
                 {/* Feature list */}
-                <div style={{ marginTop: '1.5rem' }}>
+                <div className="feature-list">
                   {[
                     ['🎯', 'YOLO clothing detection'],
                     ['🧠', 'ResNet50 feature extraction'],
                     ['📊', 'Cosine similarity ranking'],
                     ['✨', 'Rule-based outfit upgrade'],
                   ].map(([icon, text]) => (
-                    <div
-                      key={text}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.6rem',
-                               fontSize: '0.82rem', color: 'var(--text-muted)',
-                               marginBottom: '0.4rem' }}
-                    >
-                      {icon} {text}
+                    <div key={text} className="feature-pill">
+                      <span>{icon}</span> {text}
                     </div>
                   ))}
                 </div>
@@ -329,7 +351,7 @@ export default function App() {
                     ↩ Try Another
                   </button>
                 </div>
-                <UpgradePanel result={upgradeResult} />
+                <UpgradePanel result={upgradeResult} userId={userId} />
               </div>
             </div>
           )}

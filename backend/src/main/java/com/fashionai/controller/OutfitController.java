@@ -3,6 +3,7 @@ package com.fashionai.controller;
 import com.fashionai.model.ClothingItem;
 import com.fashionai.model.UpgradeResult;
 import com.fashionai.service.OutfitDetectionService;
+import com.fashionai.service.UpgradeJobService;
 import com.fashionai.service.OutfitUpgradeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class OutfitController {
 
     private final OutfitDetectionService detectionService;
     private final OutfitUpgradeService upgradeService;
+    private final UpgradeJobService upgradeJobService;
 
     /**
      * Full pipeline endpoint.
@@ -46,7 +48,9 @@ public class OutfitController {
     @PostMapping(value = "/upload-outfit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadOutfit(
             @RequestParam("image") MultipartFile image,
-            @RequestParam(value = "occasion", defaultValue = "casual") String occasion) {
+            @RequestParam(value = "occasion", defaultValue = "casual") String occasion,
+            @RequestParam(value = "userId", required = false) String userId,
+            @RequestParam(value = "renderMode", defaultValue = "sync") String renderMode) {
 
         log.info("POST /api/upload-outfit — file='{}', size={}KB, occasion='{}'",
                 image.getOriginalFilename(),
@@ -64,8 +68,27 @@ public class OutfitController {
             }
 
             // ── Step 2: Run full upgrade pipeline ────────────────────────────
+            if ("async".equalsIgnoreCase(renderMode)) {
+                UpgradeResult preAnalysis = upgradeService.upgradeOutfit(
+                        detectedItems, occasion, image.getBytes(), userId);
+                var job = upgradeJobService.createJob(
+                        userId,
+                        occasion,
+                        image.getBytes(),
+                        detectedItems,
+                        preAnalysis.getItemsToReplace(),
+                        preAnalysis.getItemsToAdd());
+                preAnalysis.setRenderStatus("queued");
+                preAnalysis.setUpgradedImageUrl(null);
+                preAnalysis.setUpgradedImageAlternatives(List.of());
+                return ResponseEntity.ok(Map.of(
+                        "upgradeResult", preAnalysis,
+                        "renderJobId", job.getId(),
+                        "renderStatus", "queued"));
+            }
+
             UpgradeResult result = upgradeService.upgradeOutfit(
-                    detectedItems, occasion, image.getBytes());
+                    detectedItems, occasion, image.getBytes(), userId);
 
             return ResponseEntity.ok(result);
 

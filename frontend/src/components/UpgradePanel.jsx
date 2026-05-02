@@ -1,4 +1,6 @@
 import RecommendationCard from './RecommendationCard'
+import axios from 'axios'
+import { useRenderJobPolling } from '../hooks/useRenderJobPolling'
 
 /** Circular progress ring for compatibility score */
 function CompatRing({ score }) {
@@ -50,7 +52,7 @@ function CompatRing({ score }) {
  *   - Summary paragraph
  *   - Outfit recommendations
  */
-export default function UpgradePanel({ result }) {
+export default function UpgradePanel({ result, userId }) {
   if (!result) return null
 
   const {
@@ -61,7 +63,34 @@ export default function UpgradePanel({ result }) {
     upgradeSummary,
     aiGeneratedDescription,
     recommendations,
+    upgradedImageUrl,
+    upgradedImageAlternatives,
+    renderStatus,
   } = result
+
+  const submitFeedback = async (recommendation, action) => {
+    try {
+      await axios.post('/api/recommend-feedback', {
+        userId,
+        action,
+        outfitId: recommendation?.outfit?.id,
+        style: recommendation?.outfit?.style,
+        occasion: result?.occasion,
+      })
+    } catch (e) {
+      console.warn('feedback failed', e)
+    }
+  }
+
+  const { status: polledStatus, result: polledJobResult } = useRenderJobPolling(
+    result?.renderJobId,
+    result?.renderStatus || 'queued',
+    (data) => console.log('Render job completed', data)
+  )
+
+  const currentRenderStatus = polledStatus || renderStatus
+  const currentUpgradedImageUrl = polledJobResult?.mainImageUrl || upgradedImageUrl
+  const currentUpgradedImageAlternatives = polledJobResult?.variants || upgradedImageAlternatives
 
   return (
     <div className="animate-fade-up">
@@ -94,6 +123,36 @@ export default function UpgradePanel({ result }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Upgraded Preview ───────────────────────────────────── */}
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div className="upgrade-section-title">
+          <span>🖼️</span> Upgraded Preview
+        </div>
+        {currentUpgradedImageUrl ? (
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <img
+              src={currentUpgradedImageUrl}
+              alt="Upgraded outfit preview"
+              style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+            {!!currentUpgradedImageAlternatives?.length && (
+              <div style={{ display: 'grid', gap: '0.6rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                {currentUpgradedImageAlternatives.map((img, i) => (
+                  <img key={i} src={img} alt={`Upgrade variant ${i + 1}`}
+                    style={{ width: '100%', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="upgrade-summary" style={{ marginTop: '0.5rem' }}>
+            {(currentRenderStatus === 'pending' || currentRenderStatus === 'queued' || currentRenderStatus === 'running') && 'Rendering preview...'}
+            {currentRenderStatus === 'failed' && 'Preview unavailable. Showing text-based upgrade only.'}
+            {!currentRenderStatus && 'Preview will appear after rendering.'}
+          </div>
+        )}
       </div>
 
       {/* ── Upgrade Suggestions ─────────────────────────────────── */}
@@ -174,6 +233,7 @@ export default function UpgradePanel({ result }) {
                 key={rec.outfit?.id || i}
                 recommendation={rec}
                 index={i}
+                onFeedback={submitFeedback}
               />
             ))}
           </div>

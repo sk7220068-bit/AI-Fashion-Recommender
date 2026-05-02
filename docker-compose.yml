@@ -11,6 +11,19 @@ version: '3.9'
 
 services:
 
+  # ── Redis ─────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.0-alpine
+    container_name: fashionai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── MongoDB ───────────────────────────────────────────────────
   mongodb:
     image: mongo:7.0
@@ -28,7 +41,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Python ML Microservice ────────────────────────────────────
   ml-service:
     build:
       context: ./ml-service
@@ -40,12 +52,30 @@ services:
     environment:
       - PORT=5001
       - FLASK_DEBUG=false
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5001/health" ]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
+
+  # ── Python RQ Worker ──────────────────────────────────────────
+  ml-worker:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: fashionai-ml-worker
+    restart: unless-stopped
+    command: rq worker upgrade-render
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
 
   # ── Java Spring Boot Backend ──────────────────────────────────
   backend:
